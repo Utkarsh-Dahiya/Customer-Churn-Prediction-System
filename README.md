@@ -139,7 +139,7 @@ No code changes are required — the app is deployment-ready as-is.
 
 ## 👤 Developer
 
-**Your Name**
+**Utkarsh Singh Dahiya**
 AI/ML Engineer · Data Scientist
 [LinkedIn](#) · [GitHub](#) · [Portfolio](#)
 
