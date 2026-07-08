@@ -1,28 +1,14 @@
-# 📡 Customer Churn Intelligence Dashboard
+# 📉 Customer Churn Prediction Dashboard
 
-A production-quality, business-facing Streamlit application that predicts telecom
-customer churn using a pre-trained scikit-learn pipeline (`ColumnTransformer` +
-`StandardScaler` + `OneHotEncoder` + tuned `GradientBoostingClassifier`).
+A production-ready Streamlit business dashboard that predicts customer churn
+for a telecom company using a pre-trained, tuned **Gradient Boosting**
+pipeline (scikit-learn).
 
-This project is built as a portfolio-ready deployment layer on top of an existing,
-already-trained model — **no retraining or preprocessing logic is duplicated here**.
-The app simply loads `customer_churn_pipeline.pkl` and uses it for inference.
-
----
-
-## ✨ Features
-
-- Clean, modern business-dashboard UI (custom CSS, no default Streamlit look)
-- Inputs organized into logical sections: **Personal, Account, Internet Services,
-  Billing**
-- Appropriate widgets for each feature type (selectbox for categorical, slider /
-  number input for numerical)
-- Client-side business-logic validation (e.g. tenure vs. total charges consistency)
-- Real-time churn prediction with probability score
-- Risk tiering (**Low / Medium / High**) with color-coded badges
-- Rule-based business recommendations tailored to the prediction
-- Sidebar with project, dataset, and model documentation
-- Fully modular, commented, and easy to extend
+> This app does **not** retrain or rebuild the model. It loads the already
+> trained pipeline artifact (`customer_churn_pipeline.pkl`) — which includes
+> both the fitted preprocessing steps (`StandardScaler`, `OneHotEncoder` via a
+> `ColumnTransformer`) and the final `GradientBoostingClassifier` — and uses
+> it strictly for inference.
 
 ---
 
@@ -30,121 +16,139 @@ The app simply loads `customer_churn_pipeline.pkl` and uses it for inference.
 
 ```
 .
-├── app.py                          # Main Streamlit application
-├── customer_churn_pipeline.pkl     # Pre-trained pipeline (preprocessing + model)
-├── requirements.txt                # Python dependencies
-├── .streamlit/
-│   └── config.toml                 # Locked-in dark theme (same look for every visitor)
+├── app.py                          # Streamlit application (entry point)
+├── customer_churn_pipeline.pkl     # Pre-trained sklearn Pipeline (preprocessing + model)
+├── requirements.txt                # Python dependencies (pinned for reproducibility)
 └── README.md                       # This file
 ```
 
-> **Keep the `.streamlit` folder!** It locks in a single professional dark
-> theme so the dashboard looks identical for every visitor, regardless of
-> their browser or OS light/dark setting. Without it, Streamlit falls back
-> to the visitor's system theme, which can clash with the app's custom CSS.
+---
+
+## 📘 About the Project
+
+Customer churn — when a customer stops doing business with a company — is
+one of the most costly problems for subscription-based businesses. This
+dashboard lets a business user enter a customer's profile and instantly get:
+
+- A **Churn / No Churn** prediction
+- A **probability score** for how likely the customer is to churn
+- A **risk tier** (Low / Medium / High)
+- **Actionable retention recommendations** tailored to that customer's profile
+
+## 🗃️ Dataset
+
+- **Source:** Telco Customer Churn dataset (IBM sample dataset)
+- **Size:** 7,043 customers, 19 input features
+- **Target:** `Churn` (Yes / No)
+- **Features cover:** demographics, account/contract details, subscribed
+  services (internet, phone, streaming, security add-ons), and billing info.
+
+## 🤖 Model
+
+- **Algorithm:** Gradient Boosting Classifier
+- **Hyperparameter tuning:** `GridSearchCV` over `n_estimators`,
+  `learning_rate`, and `max_depth` (5-fold CV, scored on ROC AUC)
+- **Preprocessing (baked into the pipeline):**
+  - `StandardScaler` on numeric features: `SeniorCitizen`, `tenure`,
+    `MonthlyCharges`, `TotalCharges`
+  - `OneHotEncoder(handle_unknown="ignore")` on the remaining 15 categorical
+    features
+- **Reported performance (from the training notebook):**
+
+  | Metric          | Value  |
+  |-----------------|--------|
+  | Test Accuracy   | 79.2%  |
+  | Precision       | 64.7%  |
+  | Recall          | 47.6%  |
+  | F1 Score        | 54.9%  |
+  | CV ROC AUC      | 0.851  |
+
+The Gradient Boosting model was selected after comparing 9 candidate
+algorithms (Logistic Regression, Decision Tree, Random Forest, Extra Trees,
+AdaBoost, KNN, SVM, Naive Bayes, Gradient Boosting) via 5-fold cross
+validation.
 
 ---
 
-## 🤖 Model Details
+## ⚙️ Setup Instructions (Local)
 
-| Component        | Detail                                                        |
-|-------------------|----------------------------------------------------------------|
-| Preprocessing     | `ColumnTransformer` → `StandardScaler` (numeric) + `OneHotEncoder` (categorical) |
-| Model             | `GradientBoostingClassifier` (tuned via `GridSearchCV`, 5-fold CV, ROC-AUC scoring) |
-| Numeric features  | `SeniorCitizen`, `tenure`, `MonthlyCharges`, `TotalCharges` |
-| Categorical features | `gender`, `Partner`, `Dependents`, `PhoneService`, `MultipleLines`, `InternetService`, `OnlineSecurity`, `OnlineBackup`, `DeviceProtection`, `TechSupport`, `StreamingTV`, `StreamingMovies`, `Contract`, `PaperlessBilling`, `PaymentMethod` |
-| Artifact          | Single serialized `sklearn.pipeline.Pipeline` object saved via `joblib.dump()` |
+1. **Clone / download this folder** and `cd` into it.
 
-The app builds a single-row `pandas.DataFrame` from the user's form inputs using
-**exactly** the column names the pipeline was fitted on, then calls
-`pipeline.predict()` / `pipeline.predict_proba()` directly — the saved pipeline
-handles all scaling and encoding internally.
-
----
-
-## 🚀 Local Setup
-
-1. **Clone or download this folder**, keeping `app.py`, `customer_churn_pipeline.pkl`,
-   and `requirements.txt` together in the same directory.
-
-2. **Create a virtual environment** (recommended):
-
+2. **Create a virtual environment (recommended):**
    ```bash
    python -m venv venv
-   source venv/bin/activate        # On Windows: venv\Scripts\activate
+   source venv/bin/activate      # Windows: venv\Scripts\activate
    ```
 
 3. **Install dependencies:**
-
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Run the app:**
+4. **Confirm the model file is present.** `customer_churn_pipeline.pkl`
+   must sit in the same directory as `app.py`.
 
+5. **Run the app:**
    ```bash
    streamlit run app.py
    ```
 
-5. Open the URL shown in your terminal (typically `http://localhost:8501`).
+6. Open the local URL Streamlit prints (typically `http://localhost:8501`).
 
 ---
 
 ## ☁️ Deploying to Streamlit Community Cloud
 
-1. Push this folder (with `app.py`, `customer_churn_pipeline.pkl`, and
-   `requirements.txt`) to a **public GitHub repository**.
-2. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub.
-3. Click **"New app"**, select your repository, branch, and set the main file
-   path to `app.py`.
-4. Click **"Deploy"** — Streamlit Cloud will automatically install the
-   dependencies from `requirements.txt` and launch the app.
+1. Push this folder (including `customer_churn_pipeline.pkl`) to a **public
+   GitHub repository**.
+2. Go to [share.streamlit.io](https://share.streamlit.io) and click
+   **"New app"**.
+3. Select your repository, branch, and set the main file path to `app.py`.
+4. Click **Deploy**. Streamlit Cloud will automatically install everything
+   listed in `requirements.txt`.
+5. No secrets, environment variables, or additional configuration are
+   required — the app is self-contained.
 
-No code changes are required — the app is deployment-ready as-is.
-
-> **Note on scikit-learn versions:** the pickle file was originally created with
-> scikit-learn 1.7.2. `requirements.txt` pins a closely compatible version
-> (1.8.0) that has been verified to load and score correctly. If you retrain
-> the model with a different scikit-learn version, update this pin to match.
+> **Note on scikit-learn / numpy versions:** `requirements.txt` pins
+> `scikit-learn==1.7.2` and `numpy>=2.0,<3.0` to match the versions the
+> pipeline was originally trained and pickled with. A numpy `1.x` vs `2.x`
+> mismatch between training and serving environments will cause errors like
+> `"<class 'numpy.random._mt19937.MT19937'> is not a known BitGenerator
+> module"` when loading the pickle — this happens because internal random
+> state objects inside the fitted model are serialized differently across
+> numpy's major versions. If you retrain the model with different
+> scikit-learn/numpy versions, update these pins to match.
 
 ---
 
-## 🧪 How Predictions Work
+## 🖥️ Using the App
 
-1. User fills out the form across four sections (Personal, Account, Internet
-   Services, Billing).
-2. On submit, inputs are validated for basic business-logic consistency
-   (e.g. Phone Service = "No" should imply Multiple Lines = "No phone service").
-3. Inputs are assembled into a single-row `DataFrame` with the exact column
-   names expected by the saved pipeline.
-4. `pipeline.predict()` returns the churn label (0 = No, 1 = Yes) and
-   `pipeline.predict_proba()` returns the churn probability.
-5. The probability is mapped to a risk tier:
-   - **Low Risk:** probability < 33%
-   - **Medium Risk:** 33% ≤ probability < 66%
-   - **High Risk:** probability ≥ 66%
-6. Business recommendations are generated based on the prediction and key
-   customer attributes (contract type, tenure, payment method, etc.).
+1. Fill in the customer's details across the four sections:
+   **Personal Information**, **Account Information**, **Internet Services**,
+   and **Billing Information**.
+2. Click **🔍 Predict Churn**.
+3. Review:
+   - The **prediction card** (Likely to Churn / Likely to Stay)
+   - The **churn probability gauge**
+   - The **risk badge** (Low / Medium / High Risk)
+   - **Business recommendations** for retention actions
+4. Expand **"View Model Input Data"** to inspect exactly what was sent to
+   the model — useful for debugging or auditing.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Streamlit** — UI framework
-- **scikit-learn** — trained pipeline (preprocessing + model)
-- **pandas / numpy** — data handling
-- **joblib** — model serialization / deserialization
+- [Streamlit](https://streamlit.io/) — UI framework
+- [scikit-learn](https://scikit-learn.org/) — trained pipeline (preprocessing + model)
+- [Plotly](https://plotly.com/python/) — interactive gauge chart
+- [pandas](https://pandas.pydata.org/) / [NumPy](https://numpy.org/) — data handling
 
 ---
 
-## 👤 Developer
+## 👨‍💻 Developer
 
-**Utkarsh Singh Dahiya**
+**Name:** Utkarsh Singh Dahiya
+**Role:** Data Scientist / ML Engineer
 
-[AI/ML Engineer · Data Scientist]
-
----
-
-## 📄 License
-
-This project is provided for portfolio and educational purposes.
+> Add your email and portfolio link here whenever you'd like them displayed.
