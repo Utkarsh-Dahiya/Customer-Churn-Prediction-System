@@ -77,11 +77,23 @@ def configure_page() -> None:
         initial_sidebar_state="expanded",
     )
 
+    # Loaded via a real <link> tag rather than a CSS @import — Streamlit's
+    # markdown sanitizer/CSP intermittently strips @import font loads,
+    # which silently falls back to a generic bold sans font (the "Churn
+    # Signal" title going flat/default is exactly that symptom). A <link>
+    # tag in the document head loads reliably.
+    st.markdown(
+        """
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+        """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown(
         """
         <style>
-            @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
             :root {
                 --bg: #060B14;
                 --panel: #0E1626;
@@ -95,7 +107,13 @@ def configure_page() -> None:
 
             /* ---------- Base type ---------- */
             html, body, [class*="css"] {
-                font-family: 'IBM Plex Sans', sans-serif;
+                font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
+            }
+            [data-testid="stAppViewContainer"] {
+                background:
+                    radial-gradient(1100px 500px at 12% -10%, rgba(35,213,196,0.07), transparent 60%),
+                    radial-gradient(900px 500px at 100% 0%, rgba(43,127,255,0.06), transparent 55%),
+                    var(--bg);
             }
             .block-container {
                 padding-top: 1.4rem;
@@ -103,30 +121,68 @@ def configure_page() -> None:
                 max-width: 1180px;
             }
 
-            /* ---------- NOC status strip ---------- */
+            /* ---------- Hero header wrapper ---------- */
+            .hero-wrap {
+                position: relative;
+                padding: 8px 0 4px 0;
+                margin-bottom: 0.4rem;
+            }
+            .hero-glow {
+                position: absolute;
+                top: -60px;
+                left: -40px;
+                width: 420px;
+                height: 260px;
+                background: radial-gradient(circle, rgba(35,213,196,0.16) 0%, rgba(35,213,196,0) 70%);
+                pointer-events: none;
+                z-index: 0;
+            }
+            .hero-content { position: relative; z-index: 1; }
+
+            /* ---------- Logo badge (SVG, no emoji/font dependency) ---------- */
+            .logo-badge {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 54px;
+                height: 54px;
+                border-radius: 14px;
+                background: linear-gradient(135deg, #2B7FFF 0%, #23D5C4 100%);
+                box-shadow: 0 6px 20px rgba(35, 213, 196, 0.28), inset 0 1px 0 rgba(255,255,255,0.25);
+                margin-right: 16px;
+                flex-shrink: 0;
+            }
+
+            /* ---------- NOC status strip → pill chips ---------- */
             .noc-strip {
                 display: flex;
                 flex-wrap: wrap;
-                gap: 22px;
+                gap: 10px;
                 align-items: center;
+                margin-bottom: 1.7rem;
+            }
+            .noc-chip {
+                display: flex;
+                align-items: center;
+                gap: 7px;
                 background: var(--panel);
                 border: 1px solid var(--panel-border);
-                border-radius: 8px;
-                padding: 9px 18px;
-                font-family: 'IBM Plex Mono', monospace;
-                font-size: 0.74rem;
+                border-radius: 999px;
+                padding: 7px 16px;
+                font-family: 'IBM Plex Mono', 'Consolas', monospace;
+                font-size: 0.72rem;
                 letter-spacing: 0.03em;
                 color: var(--muted);
-                margin-bottom: 1.6rem;
+                white-space: nowrap;
             }
-            .noc-strip b { color: var(--text); font-weight: 600; }
+            .noc-chip b { color: var(--text); font-weight: 600; }
+            .noc-chip.live { border-color: rgba(35,213,196,0.4); background: rgba(35,213,196,0.06); }
             .noc-dot {
                 display: inline-block;
                 width: 7px;
                 height: 7px;
                 border-radius: 50%;
                 background: var(--accent);
-                margin-right: 6px;
                 box-shadow: 0 0 8px var(--accent);
                 animation: dotpulse 2.2s ease-in-out infinite;
             }
@@ -136,32 +192,50 @@ def configure_page() -> None:
             }
 
             /* ---------- Header ---------- */
-            .app-title {
-                font-family: 'Space Grotesk', sans-serif;
-                font-size: 2.5rem;
-                font-weight: 700;
-                color: var(--text);
-                letter-spacing: -0.01em;
-                margin-bottom: 0.15rem;
+            .app-title-row {
+                display: flex;
+                align-items: center;
+                margin-bottom: 0.5rem;
             }
-            .app-title .bars { color: var(--accent); margin-right: 10px; }
+            .app-title {
+                font-family: 'Space Grotesk', 'Poppins', -apple-system, 'Segoe UI', sans-serif;
+                font-size: 2.7rem;
+                font-weight: 700;
+                letter-spacing: -0.02em;
+                line-height: 1.05;
+                margin: 0;
+                background: linear-gradient(90deg, #FFFFFF 0%, #C7D9FF 50%, var(--accent) 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+            .app-title-sub {
+                font-family: 'IBM Plex Mono', 'Consolas', monospace;
+                font-size: 0.68rem;
+                letter-spacing: 0.18em;
+                color: var(--accent);
+                text-transform: uppercase;
+                margin-bottom: 2px;
+            }
             .app-subtitle {
-                font-size: 1.0rem;
+                font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
+                font-size: 1.03rem;
                 color: var(--muted);
-                margin-bottom: 1.2rem;
-                max-width: 720px;
+                margin-bottom: 1.4rem;
+                max-width: 700px;
+                line-height: 1.55;
             }
 
             /* ---------- Section headers (numbered steps) ---------- */
             .step-eyebrow {
-                font-family: 'IBM Plex Mono', monospace;
+                font-family: 'IBM Plex Mono', 'Consolas', monospace;
                 font-size: 0.72rem;
                 letter-spacing: 0.12em;
                 color: var(--accent);
                 margin-bottom: 2px;
             }
             .section-title {
-                font-family: 'Space Grotesk', sans-serif;
+                font-family: 'Space Grotesk', 'Poppins', -apple-system, 'Segoe UI', sans-serif;
                 font-size: 1.15rem;
                 font-weight: 600;
                 color: var(--text);
@@ -177,7 +251,7 @@ def configure_page() -> None:
 
             /* ---------- Result cards ---------- */
             .result-banner {
-                font-family: 'Space Grotesk', sans-serif;
+                font-family: 'Space Grotesk', 'Poppins', -apple-system, 'Segoe UI', sans-serif;
                 font-size: 1.3rem;
                 font-weight: 600;
                 padding: 14px 18px;
@@ -195,7 +269,7 @@ def configure_page() -> None:
                 display: inline-block;
                 padding: 4px 13px;
                 border-radius: 999px;
-                font-family: 'IBM Plex Mono', monospace;
+                font-family: 'IBM Plex Mono', 'Consolas', monospace;
                 font-weight: 600;
                 font-size: 0.75rem;
                 letter-spacing: 0.05em;
@@ -243,14 +317,14 @@ def configure_page() -> None:
                 text-align: center;
             }
             .pulse-value {
-                font-family: 'Space Grotesk', sans-serif;
+                font-family: 'Space Grotesk', 'Poppins', -apple-system, 'Segoe UI', sans-serif;
                 font-size: 2.2rem;
                 font-weight: 700;
                 color: var(--text);
                 line-height: 1;
             }
             .pulse-label {
-                font-family: 'IBM Plex Mono', monospace;
+                font-family: 'IBM Plex Mono', 'Consolas', monospace;
                 font-size: 0.68rem;
                 letter-spacing: 0.08em;
                 color: var(--muted);
@@ -272,7 +346,7 @@ def configure_page() -> None:
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-family: 'IBM Plex Mono', monospace;
+                font-family: 'IBM Plex Mono', 'Consolas', monospace;
                 font-size: 0.75rem;
                 font-weight: 600;
                 color: #06111f;
@@ -301,7 +375,7 @@ def configure_page() -> None:
                 margin-bottom: 5px;
             }
             .driver-chip-top .imp {
-                font-family: 'IBM Plex Mono', monospace;
+                font-family: 'IBM Plex Mono', 'Consolas', monospace;
                 color: var(--accent);
                 font-size: 0.78rem;
             }
@@ -357,15 +431,15 @@ def configure_page() -> None:
 
 
 def render_status_strip() -> None:
-    """Render a small network-operations-style status strip under the header."""
+    """Render a row of pill-style status chips under the header."""
     st.markdown(
         f"""
         <div class="noc-strip">
-            <span><span class="noc-dot"></span><b>MODEL ONLINE</b></span>
-            <span>DATASET&nbsp;<b>7,043 RECORDS</b></span>
-            <span>ALGORITHM&nbsp;<b>GRADIENT BOOSTING</b></span>
-            <span>CV ROC-AUC&nbsp;<b>{MODEL_METRICS['CV ROC AUC']}</b></span>
-            <span>TEST ACCURACY&nbsp;<b>{MODEL_METRICS['Test Accuracy']}</b></span>
+            <span class="noc-chip live"><span class="noc-dot"></span><b>MODEL ONLINE</b></span>
+            <span class="noc-chip">DATASET&nbsp;<b>7,043 records</b></span>
+            <span class="noc-chip">ALGORITHM&nbsp;<b>Gradient Boosting</b></span>
+            <span class="noc-chip">CV ROC-AUC&nbsp;<b>{MODEL_METRICS['CV ROC AUC']}</b></span>
+            <span class="noc-chip">TEST ACCURACY&nbsp;<b>{MODEL_METRICS['Test Accuracy']}</b></span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -898,13 +972,28 @@ def main() -> None:
     configure_page()
 
     st.markdown(
-        '<div class="app-title"><span class="bars">📶</span>Churn Signal</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        '<div class="app-subtitle">Real-time churn risk scoring and retention '
-        'intelligence for telecom subscribers — powered by a tuned Gradient '
-        'Boosting model.</div>',
+        """
+        <div class="hero-wrap">
+            <div class="hero-glow"></div>
+            <div class="hero-content">
+                <div class="app-title-sub">RETENTION INTELLIGENCE CONSOLE</div>
+                <div class="app-title-row">
+                    <span class="logo-badge">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 17V13.5" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+                            <path d="M9.5 17V9" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+                            <path d="M15 17V11.5" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+                            <path d="M20 17V6" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <h1 class="app-title">Churn Signal</h1>
+                </div>
+                <div class="app-subtitle">Real-time churn risk scoring and retention
+                intelligence for telecom subscribers — powered by a tuned Gradient
+                Boosting model.</div>
+            </div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
     render_status_strip()
